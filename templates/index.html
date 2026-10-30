@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>Product Review Analysis</title>
+     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    </head>
+
+<body>
+
+<header>
+
+    <nav>
+
+        <div class="logo">
+            PRODUCT REVIEW
+        </div>
+
+        <a href="#search">
+            Search
+        </a>
+
+        <a href="#analysis">
+            Analysis
+        </a>
+
+        <a href="#upload">
+            Upload Dataset
+        </a>
+
+    </nav>
+
+</header>
+
+
+<main>
+
+    <!-- SEARCH -->
+
+    <section class="hero"
+             id="search">
+
+        <h1>
+            PRODUCT REVIEW ANALYSIS
+        </h1>
+
+        <p>
+            Find products and make better buying decisions
+            using NLP and customer reviews.
+        </p>
+
+
+        <div class="search-box">
+
+            <input
+                type="text"
+                id="productQuery"
+                placeholder="I want to buy a laptop"
+            >
+
+            <button onclick="searchProduct()">
+                SEARCH
+            </button>
+
+        </div>
+
+    </section>
+
+
+    <!-- LOADING -->
+
+    <div id="loading"
+         class="loading">
+
+        Analyzing customer reviews...
+
+    </div>
+
+
+    <!-- RECOMMENDATION -->
+
+    <section id="recommendation"
+             class="recommendation-section">
+
+        <h2>
+            RECOMMENDATION
+        </h2>
+
+
+        <div id="recommendationContent">
+
+            <p>
+                Enter a product above to get a recommendation.
+            </p>
+
+        </div>
+
+    </section>
+
+
+    <!-- PRODUCT ANALYSIS -->
+
+    <section class="section"
+             id="analysis">
+
+        <h2>
+            PRODUCT ANALYSIS
+        </h2>
+
+
+        <div class="table-container">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th>Product</th>
+
+                        <th>Rating</th>
+
+                        <th>Positive</th>
+
+                        <th>Negative</th>
+
+                        <th>Recommendation</th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody id="productTable">
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+
+    <!-- REVIEW ANALYSIS -->
+
+    <section class="section">
+
+        <h2>
+            REVIEW ANALYSIS
+        </h2>
+
+
+        <div class="sentiment-bars">
+
+            <div>
+
+                <span>
+                    Positive
+                </span>
+
+                <div class="bar">
+
+                    <div id="positiveBar"
+                         class="positive-bar">
+                    </div>
+
+                </div>
+
+                <strong id="positiveText">
+                    0%
+                </strong>
+
+            </div>
+
+
+            <div>
+
+                <span>
+                    Neutral
+                </span>
+
+                <div class="bar">
+
+                    <div id="neutralBar"
+                         class="neutral-bar">
+                    </div>
+
+                </div>
+
+                <strong id="neutralText">
+                    0%
+                </strong>
+
+            </div>
+
+
+            <div>
+
+                <span>
+                    Negative
+                </span>
+
+                <div class="bar">
+
+                    <div id="negativeBar"
+                         class="negative-bar">
+                    </div>
+
+                </div>
+
+                <strong id="negativeText">
+                    0%
+                </strong>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- CSV UPLOAD -->
+
+    <section class="section"
+             id="upload">
+
+        <h2>
+            UPLOAD PRODUCT DATASET
+        </h2>
+
+        <p>
+            Upload your CSV file to analyze product reviews.
+        </p>
+
+
+        <form action="/upload"
+              method="POST"
+              enctype="multipart/form-data">
+
+            <input
+                type="file"
+                name="file"
+                accept=".csv"
+                required
+            >
+
+            <button type="submit">
+                Upload Dataset
+            </button>
+
+        </form>
+
+    </section>
+
+</main>
+
+
+<script>
+
+async function searchProduct() {
+
+    const query =
+        document.getElementById(
+            "productQuery"
+        ).value.trim();
+
+
+    if (!query) {
+
+        alert(
+            "Please enter a product."
+        );
+
+        return;
+    }
+
+
+    document.getElementById(
+        "loading"
+    ).style.display = "block";
+
+
+    try {
+
+        const response =
+            await fetch(
+                "/recommend",
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body: JSON.stringify({
+                        query: query
+                    })
+                }
+            );
+
+
+        const data =
+            await response.json();
+
+
+        if (!data.found) {
+
+            document.getElementById(
+                "recommendationContent"
+            ).innerHTML = `
+                <div class="not-found">
+                    <h3>Product Not Found</h3>
+                    <p>${data.message}</p>
+                </div>
+            `;
+
+            return;
+        }
+
+
+        displayRecommendation(
+            data
+        );
+
+
+        displayProducts(
+            data.products
+        );
+
+
+        displaySentiment(
+            data.best_product
+        );
+
+    }
+
+    catch (error) {
+
+        console.error(error);
+
+        alert(
+            "Something went wrong."
+        );
+
+    }
+
+    finally {
+
+        document.getElementById(
+            "loading"
+        ).style.display = "none";
+
+    }
+
+}
+
+
+function displayRecommendation(data) {
+
+    const product =
+        data.best_product;
+
+
+    let recommendationClass =
+        product.recommendation
+            .toLowerCase();
+
+
+    document.getElementById(
+        "recommendationContent"
+    ).innerHTML = `
+
+        <div class="recommendation-card">
+
+            <div class="product-icon">
+                🛍️
+            </div>
+
+            <h3>
+                ${product.product_name}
+            </h3>
+
+            <div class="rating">
+
+                ★ ${product.average_rating} / 5
+
+            </div>
+
+
+            <div class="stats">
+
+                <div>
+                    <strong>
+                        ${product.positive_percent}%
+                    </strong>
+
+                    <span>
+                        Positive Reviews
+                    </span>
+                </div>
+
+
+                <div>
+                    <strong>
+                        ${product.neutral_percent}%
+                    </strong>
+
+                    <span>
+                        Neutral Reviews
+                    </span>
+                </div>
+
+
+                <div>
+                    <strong>
+                        ${product.negative_percent}%
+                    </strong>
+
+                    <span>
+                        Negative Reviews
+                    </span>
+                </div>
+
+            </div>
+
+
+            <div class="
+                decision
+                ${recommendationClass}
+            ">
+
+                ${product.recommendation_text}
+
+            </div>
+
+
+            <div class="score">
+
+                Recommendation Score:
+                <strong>
+                    ${product.score}%
+                </strong>
+
+            </div>
+
+
+            <p>
+                Based on ${product.review_count}
+                customer reviews.
+            </p>
+
+        </div>
+    `;
+}
+
+
+function displayProducts(products) {
+
+    const table =
+        document.getElementById(
+            "productTable"
+        );
+
+
+    table.innerHTML = "";
+
+
+    products.forEach(
+        product => {
+
+            let icon = "⚠";
+
+            if (
+                product.recommendation
+                === "BUY"
+            ) {
+
+                icon = "✓";
+
+            }
+
+            if (
+                product.recommendation
+                === "AVOID"
+            ) {
+
+                icon = "✗";
+
+            }
+
+
+            table.innerHTML += `
+
+                <tr>
+
+                    <td>
+                        ${product.product_name}
+                    </td>
+
+                    <td>
+                        ★ ${product.average_rating}
+                    </td>
+
+                    <td>
+                        ${product.positive_percent}%
+                    </td>
+
+                    <td>
+                        ${product.negative_percent}%
+                    </td>
+
+                    <td>
+                        ${icon}
+                        ${product.recommendation}
+                    </td>
+
+                </tr>
+
+            `;
+
+        }
+    );
+}
+
+
+function displaySentiment(product) {
+
+    document.getElementById(
+        "positiveBar"
+    ).style.width =
+        product.positive_percent + "%";
+
+
+    document.getElementById(
+        "neutralBar"
+    ).style.width =
+        product.neutral_percent + "%";
+
+
+    document.getElementById(
+        "negativeBar"
+    ).style.width =
+        product.negative_percent + "%";
+
+
+    document.getElementById(
+        "positiveText"
+    ).textContent =
+        product.positive_percent + "%";
+
+
+    document.getElementById(
+        "neutralText"
+    ).textContent =
+        product.neutral_percent + "%";
+
+
+    document.getElementById(
+        "negativeText"
+    ).textContent =
+        product.negative_percent + "%";
+}
+
+
+document
+    .getElementById("productQuery")
+    .addEventListener(
+        "keypress",
+        function(event) {
+
+            if (
+                event.key === "Enter"
+            ) {
+
+                searchProduct();
+
+            }
+
+        }
+    );
+
+</script>
+
+</body>
+
+</html>
